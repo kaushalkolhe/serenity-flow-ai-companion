@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SmilePlus, Smile, Meh, Frown, FrownPlus } from "lucide-react";
+import { SmilePlus, Smile, Meh, Frown, XCircle } from "lucide-react";
 
 interface MoodOption {
   value: number;
@@ -39,7 +39,7 @@ const moodOptions: MoodOption[] = [
   {
     value: 1,
     label: "Awful",
-    icon: <FrownPlus className="h-8 w-8" />,
+    icon: <XCircle className="h-8 w-8" />,
     color: "bg-warmth-400 text-warmth-900",
   },
 ];
