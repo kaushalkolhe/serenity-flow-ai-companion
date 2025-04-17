@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Mic, Image, Smile } from "lucide-react";
 import ChatMessage from "./ChatMessage";
 import QuickReply from "./QuickReply";
+import { generateBotResponse } from "@/utils/chatUtils";
 
 interface Message {
   id: string;
@@ -24,11 +24,11 @@ const initialMessages: Message[] = [
 ];
 
 const quickReplyOptions = [
-  "I'm feeling anxious",
+  "I'm feeling anxious today",
   "I'm feeling sad",
-  "I'm feeling overwhelmed",
-  "I'm just here to chat",
-  "Tell me about mindfulness",
+  "Can we try meditation?",
+  "Tell me about breathing exercises",
+  "How can you help me?",
 ];
 
 const ChatInterface: React.FC = () => {
@@ -37,27 +37,10 @@ const ChatInterface: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   
-  // Simulate AI response
   const simulateResponse = (userMessage: string) => {
     setIsTyping(true);
+    const response = generateBotResponse(userMessage);
     
-    // Determine response based on user message
-    let response = "";
-    const lowerCaseMessage = userMessage.toLowerCase();
-    
-    if (lowerCaseMessage.includes("anxious") || lowerCaseMessage.includes("anxiety")) {
-      response = "I understand that anxiety can be challenging. Let's take a moment to breathe together. Would you like to try a quick breathing exercise?";
-    } else if (lowerCaseMessage.includes("sad") || lowerCaseMessage.includes("depressed")) {
-      response = "I'm sorry to hear you're feeling down. Remember that it's okay to feel sad sometimes. Would you like to explore some gentle activities that might help lift your mood?";
-    } else if (lowerCaseMessage.includes("overwhelmed")) {
-      response = "When things feel overwhelming, it can help to break them down into smaller pieces. Would you like to talk about what's on your plate right now?";
-    } else if (lowerCaseMessage.includes("mindfulness")) {
-      response = "Mindfulness is about being present in the moment without judgment. It can help reduce stress and increase clarity. Would you like to try a simple mindfulness exercise?";
-    } else {
-      response = "Thank you for sharing. I'm here to listen and support you. Would you like to tell me more about how you're feeling?";
-    }
-    
-    // Simulate typing delay
     setTimeout(() => {
       const newMessage: Message = {
         id: Date.now().toString(),
@@ -67,7 +50,7 @@ const ChatInterface: React.FC = () => {
       };
       setMessages((prev) => [...prev, newMessage]);
       setIsTyping(false);
-    }, 1500);
+    }, 1000);
   };
   
   const handleSendMessage = (e?: React.FormEvent) => {
