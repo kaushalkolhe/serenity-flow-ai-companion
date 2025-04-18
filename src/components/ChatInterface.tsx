@@ -139,7 +139,7 @@ const ChatInterface: React.FC = () => {
   }, [messages]);
   
   return (
-    <div className="flex flex-col h-[calc(100vh-15rem)] md:h-[calc(100vh-14rem)] bg-card rounded-xl shadow-md overflow-hidden border">
+    <div className="flex flex-col h-[calc(100vh-8rem)] bg-card rounded-xl shadow-md overflow-hidden border">
       <div className="p-4 bg-muted/30 backdrop-blur-sm border-b">
         <h2 className="text-xl font-serif font-medium">Chat with Serenity</h2>
         <p className="text-sm text-muted-foreground">Your AI companion for emotional support</p>

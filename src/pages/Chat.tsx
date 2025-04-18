@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Layout from "@/components/Layout";
 import ChatInterface from "@/components/ChatInterface";
@@ -20,13 +19,13 @@ const Chat = () => {
 
   return (
     <Layout>
-      <div className="container py-8">
-        <div className="flex flex-col lg:flex-row gap-6">
-          <div className="w-full lg:w-3/4">
+      <div className="container py-4">
+        <div className="flex flex-col lg:flex-row gap-4">
+          <div className="w-full lg:w-4/5">
             <ChatInterface />
           </div>
           
-          <div className="w-full lg:w-1/4 space-y-6">
+          <div className="w-full lg:w-1/5 space-y-4">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg font-serif">Daily Activities</CardTitle>
