@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +12,7 @@ interface Message {
   id: string;
   text: string;
   isUser: boolean;
-  timestamp: Date;
+  timestamp: Date | string;
 }
 
 const initialMessages: Message[] = [
@@ -45,7 +44,9 @@ const ChatInterface: React.FC = () => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
-    localStorage.setItem("chat-messages", JSON.stringify(messages));
+    if (messages !== initialMessages) {
+      localStorage.setItem("chat-messages", JSON.stringify(messages));
+    }
   }, [messages]);
   
   const getActivitySuggestion = (text: string): string | null => {
@@ -68,13 +69,10 @@ const ChatInterface: React.FC = () => {
     setIsTyping(true);
     
     try {
-      // Get AI response from OpenAI
       const response = await generateAIResponse(userMessage);
       
-      // Check if there's an activity suggestion in the response
       const suggestedActivity = getActivitySuggestion(response);
       
-      // Create the AI response message
       const newMessage: Message = {
         id: Date.now().toString(),
         text: response,
@@ -84,7 +82,6 @@ const ChatInterface: React.FC = () => {
       
       setMessages((prev) => [...prev, newMessage]);
       
-      // If there's a suggested activity, add a follow-up message with the direct link
       if (suggestedActivity) {
         const activity = activities.find(a => a.id === suggestedActivity);
         if (activity) {
@@ -101,7 +98,6 @@ const ChatInterface: React.FC = () => {
       }
     } catch (error) {
       console.error("Error getting AI response:", error);
-      // Use a basic fallback response if the AI service fails
       const fallbackMessage: Message = {
         id: Date.now().toString(),
         text: "I'm here to support you. How can I help with your mental well-being today?",
@@ -144,11 +140,9 @@ const ChatInterface: React.FC = () => {
   };
   
   useEffect(() => {
-    // Scroll to the bottom when messages change
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  // Always scroll to top when component mounts
+  
   useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = 0;

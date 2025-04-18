@@ -6,11 +6,22 @@ import { cn } from "@/lib/utils";
 interface ChatMessageProps {
   message: string;
   isUser: boolean;
-  timestamp: Date;
+  timestamp: Date | string;
 }
 
 const ChatMessage: React.FC<ChatMessageProps> = ({ message, isUser, timestamp }) => {
-  const formattedTime = timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  // Convert string timestamp to Date if needed, or use as is if it's already a Date
+  const getFormattedTime = () => {
+    try {
+      const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (error) {
+      console.error("Failed to format timestamp:", error);
+      return ""; // Return empty string if there's an error
+    }
+  };
+  
+  const formattedTime = getFormattedTime();
   
   return (
     <div className={cn("flex w-full mb-4", isUser ? "justify-end" : "justify-start")}>
