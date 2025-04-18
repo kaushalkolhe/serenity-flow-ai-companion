@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useScrollToTop } from "./hooks/useScrollToTop";
 import Index from "./pages/Index";
 import Chat from "./pages/Chat";
+import Journal from "./pages/Journal";
 import Resources from "./pages/Resources";
 import About from "./pages/About";
 import Profile from "./pages/Profile";
@@ -30,6 +31,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/chat" element={<Chat />} />
+          <Route path="/journal" element={<Journal />} />
           <Route path="/resources" element={<Resources />} />
           <Route path="/about" element={<About />} />
           <Route path="/profile" element={<Profile />} />

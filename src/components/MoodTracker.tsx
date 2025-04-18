@@ -1,8 +1,9 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { SmilePlus, Smile, Meh, Frown, XCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface MoodOption {
   value: number;
@@ -46,14 +47,31 @@ const moodOptions: MoodOption[] = [
 
 const MoodTracker: React.FC = () => {
   const [selectedMood, setSelectedMood] = useState<number | null>(null);
-  const [moodLog, setMoodLog] = useState<Array<{ date: Date; mood: number }>>([
-    { date: new Date(Date.now() - 86400000 * 6), mood: 3 },
-    { date: new Date(Date.now() - 86400000 * 5), mood: 4 },
-    { date: new Date(Date.now() - 86400000 * 4), mood: 2 },
-    { date: new Date(Date.now() - 86400000 * 3), mood: 3 },
-    { date: new Date(Date.now() - 86400000 * 2), mood: 4 },
-    { date: new Date(Date.now() - 86400000), mood: 3 },
-  ]);
+  const [moodLog, setMoodLog] = useState<Array<{ date: Date; mood: number }>>(() => {
+    const savedMoods = localStorage.getItem("mood-log");
+    if (savedMoods) {
+      const parsed = JSON.parse(savedMoods);
+      return parsed.map((item: any) => ({
+        ...item,
+        date: new Date(item.date)
+      }));
+    }
+    
+    return [
+      { date: new Date(Date.now() - 86400000 * 6), mood: 3 },
+      { date: new Date(Date.now() - 86400000 * 5), mood: 4 },
+      { date: new Date(Date.now() - 86400000 * 4), mood: 2 },
+      { date: new Date(Date.now() - 86400000 * 3), mood: 3 },
+      { date: new Date(Date.now() - 86400000 * 2), mood: 4 },
+      { date: new Date(Date.now() - 86400000), mood: 3 },
+    ];
+  });
+
+  const { toast } = useToast();
+
+  useEffect(() => {
+    localStorage.setItem("mood-log", JSON.stringify(moodLog));
+  }, [moodLog]);
 
   const handleMoodSelect = (mood: number) => {
     setSelectedMood(mood);
@@ -64,11 +82,33 @@ const MoodTracker: React.FC = () => {
       const newMoodLog = [...moodLog, { date: new Date(), mood: selectedMood }];
       setMoodLog(newMoodLog);
       setSelectedMood(null);
+      
+      const option = moodOptions.find(o => o.value === selectedMood);
+      toast({
+        title: "Mood logged",
+        description: `You're feeling ${option?.label.toLowerCase()} today. Thanks for checking in!`,
+      });
     }
   };
 
+  const getTodaysMood = () => {
+    const today = new Date();
+    const todayMoodEntry = moodLog.find(entry => {
+      const entryDate = new Date(entry.date);
+      return entryDate.getDate() === today.getDate() && 
+             entryDate.getMonth() === today.getMonth() && 
+             entryDate.getFullYear() === today.getFullYear();
+    });
+    
+    return todayMoodEntry?.mood || null;
+  };
+
+  const todaysMood = getTodaysMood();
+
   const renderMoodHistory = () => {
-    const recentMoods = [...moodLog].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 7);
+    const recentMoods = [...moodLog]
+      .sort((a, b) => b.date.getTime() - a.date.getTime())
+      .slice(0, 7);
     
     return (
       <div className="mt-4">
@@ -77,13 +117,14 @@ const MoodTracker: React.FC = () => {
           {recentMoods.map((entry, index) => {
             const option = moodOptions.find(o => o.value === entry.mood);
             const height = `${(entry.mood / 5) * 100}%`;
-            const dayName = entry.date.toLocaleDateString(undefined, { weekday: 'short' }).substring(0, 3);
+            const dayName = new Date(entry.date).toLocaleDateString(undefined, { weekday: 'short' }).substring(0, 3);
             
             return (
               <div key={index} className="flex flex-col items-center flex-1">
                 <div 
                   className={`w-full rounded-t-md ${option?.color.split(' ')[0]} transition-all duration-300`} 
                   style={{ height }}
+                  title={`${option?.label} on ${new Date(entry.date).toLocaleDateString()}`}
                 ></div>
                 <span className="text-xs text-muted-foreground mt-1">{dayName}</span>
               </div>
@@ -98,6 +139,11 @@ const MoodTracker: React.FC = () => {
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="text-xl font-serif">How are you feeling today?</CardTitle>
+        {todaysMood !== null && (
+          <CardDescription>
+            You've already logged your mood today as "{moodOptions.find(o => o.value === todaysMood)?.label}"
+          </CardDescription>
+        )}
       </CardHeader>
       <CardContent>
         <div className="flex justify-between mb-6">

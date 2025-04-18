@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import Layout from "@/components/Layout";
 import ChatInterface from "@/components/ChatInterface";
@@ -7,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Calendar, FileText, Settings } from "lucide-react";
 import { activities } from "@/utils/chatUtils";
+import { Link } from "react-router-dom";
 
 const Chat = () => {
   const [selectedActivity, setSelectedActivity] = useState<string | null>(null);
@@ -21,11 +23,11 @@ const Chat = () => {
     <Layout>
       <div className="container py-4">
         <div className="flex flex-col lg:flex-row gap-4">
-          <div className="w-full lg:w-4/5">
+          <div className="w-full lg:w-3/4">
             <ChatInterface />
           </div>
           
-          <div className="w-full lg:w-1/5 space-y-4">
+          <div className="w-full lg:w-1/4 space-y-4">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg font-serif">Daily Activities</CardTitle>
@@ -70,10 +72,12 @@ const Chat = () => {
                   <Calendar className="h-5 w-5" />
                   <span className="text-xs">Schedule</span>
                 </Button>
-                <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 items-center justify-center">
-                  <FileText className="h-5 w-5" />
-                  <span className="text-xs">Journal</span>
-                </Button>
+                <Link to="/journal" className="w-full">
+                  <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 items-center justify-center w-full">
+                    <FileText className="h-5 w-5" />
+                    <span className="text-xs">Journal</span>
+                  </Button>
+                </Link>
                 <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 items-center justify-center">
                   <Settings className="h-5 w-5" />
                   <span className="text-xs">Settings</span>

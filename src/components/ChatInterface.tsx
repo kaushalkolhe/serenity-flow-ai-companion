@@ -34,10 +34,19 @@ const quickReplyOptions = [
 ];
 
 const ChatInterface: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const savedMessages = localStorage.getItem("chat-messages");
+    return savedMessages ? JSON.parse(savedMessages) : initialMessages;
+  });
+  
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    localStorage.setItem("chat-messages", JSON.stringify(messages));
+  }, [messages]);
   
   const getActivitySuggestion = (text: string): string | null => {
     const lowerText = text.toLowerCase();
@@ -135,17 +144,42 @@ const ChatInterface: React.FC = () => {
   };
   
   useEffect(() => {
+    // Scroll to the bottom when messages change
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Always scroll to top when component mounts
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTop = 0;
+    }
+  }, []);
+  
+  const clearChat = () => {
+    if (confirm("Are you sure you want to clear your chat history?")) {
+      setMessages(initialMessages);
+      localStorage.removeItem("chat-messages");
+    }
+  };
   
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] bg-card rounded-xl shadow-md overflow-hidden border">
-      <div className="p-4 bg-muted/30 backdrop-blur-sm border-b">
-        <h2 className="text-xl font-serif font-medium">Chat with Serenity</h2>
-        <p className="text-sm text-muted-foreground">Your AI companion for emotional support</p>
+      <div className="p-4 bg-muted/30 backdrop-blur-sm border-b flex justify-between items-center">
+        <div>
+          <h2 className="text-xl font-serif font-medium">Chat with Serenity</h2>
+          <p className="text-sm text-muted-foreground">Your AI companion for emotional support</p>
+        </div>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={clearChat}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          Clear Chat
+        </Button>
       </div>
       
-      <ScrollArea className="flex-1 p-4">
+      <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
         <div className="space-y-4">
           {messages.map((message) => (
             <ChatMessage
