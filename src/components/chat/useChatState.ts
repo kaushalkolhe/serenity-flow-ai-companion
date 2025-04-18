@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { generateAIResponse } from "@/utils/openaiService";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { RealtimeChannel } from "@supabase/supabase-js";
 
 interface Message {
   id: string;
@@ -24,6 +25,41 @@ export const useChatState = () => {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [isTyping, setIsTyping] = useState(false);
 
+  // Set up real-time subscription
+  useEffect(() => {
+    const channel: RealtimeChannel = supabase
+      .channel('chat-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'chat_messages'
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newMessage = {
+              id: payload.new.id,
+              text: payload.new.message,
+              isUser: payload.new.is_user,
+              timestamp: payload.new.timestamp,
+            };
+            setMessages((prev) => 
+              // Avoid duplicate messages if we were the ones who inserted it
+              prev.some(msg => msg.id === newMessage.id) 
+                ? prev 
+                : [...prev, newMessage]
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   useEffect(() => {
     const fetchChatHistory = async () => {
       const { data, error } = await supabase
@@ -33,6 +69,11 @@ export const useChatState = () => {
 
       if (error) {
         console.error('Error fetching chat history:', error);
+        toast({
+          title: "Error loading chat history",
+          description: "Please try refreshing the page",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -74,6 +115,11 @@ export const useChatState = () => {
 
       if (error) {
         console.error('Error saving AI message:', error);
+        toast({
+          title: "Error saving message",
+          description: "Your message couldn't be saved",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -81,6 +127,11 @@ export const useChatState = () => {
       
     } catch (error) {
       console.error("Error getting AI response:", error);
+      toast({
+        title: "Error getting AI response",
+        description: "Please try again",
+        variant: "destructive",
+      });
       const fallbackMessage: Message = {
         id: Date.now().toString(),
         text: "I'm here to support you. How can I help with your mental well-being today?",
@@ -112,6 +163,11 @@ export const useChatState = () => {
 
     if (error) {
       console.error('Error saving user message:', error);
+      toast({
+        title: "Error sending message",
+        description: "Please try again",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -128,10 +184,19 @@ export const useChatState = () => {
 
       if (error) {
         console.error('Error clearing chat history:', error);
+        toast({
+          title: "Error clearing chat",
+          description: "Please try again",
+          variant: "destructive",
+        });
         return;
       }
 
       setMessages(initialMessages);
+      toast({
+        title: "Chat cleared",
+        description: "Your chat history has been cleared",
+      });
     }
   };
 
