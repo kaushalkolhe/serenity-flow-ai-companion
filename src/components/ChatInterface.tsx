@@ -2,11 +2,12 @@ import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Mic, Image, Smile } from "lucide-react";
+import { Send, Smile } from "lucide-react";
 import ChatMessage from "./ChatMessage";
 import QuickReply from "./QuickReply";
 import { generateAIResponse } from "@/utils/openaiService";
 import { activities } from "@/utils/chatUtils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   id: string;
@@ -33,22 +34,39 @@ const quickReplyOptions = [
 ];
 
 const ChatInterface: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>(() => {
-    const savedMessages = localStorage.getItem("chat-messages");
-    return savedMessages ? JSON.parse(savedMessages) : initialMessages;
-  });
-  
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  
+
+  // Fetch chat history from Supabase
   useEffect(() => {
-    if (messages !== initialMessages) {
-      localStorage.setItem("chat-messages", JSON.stringify(messages));
-    }
-  }, [messages]);
-  
+    const fetchChatHistory = async () => {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .order('timestamp', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching chat history:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        const formattedMessages = data.map(msg => ({
+          id: msg.id,
+          text: msg.message,
+          isUser: msg.is_user,
+          timestamp: msg.timestamp,
+        }));
+        setMessages([...initialMessages, ...formattedMessages]);
+      }
+    };
+
+    fetchChatHistory();
+  }, []);
+
   const getActivitySuggestion = (text: string): string | null => {
     const lowerText = text.toLowerCase();
     
@@ -64,35 +82,61 @@ const ChatInterface: React.FC = () => {
     
     return null;
   };
-  
+
   const simulateResponse = async (userMessage: string) => {
     setIsTyping(true);
     
     try {
       const response = await generateAIResponse(userMessage);
-      
       const suggestedActivity = getActivitySuggestion(response);
       
-      const newMessage: Message = {
-        id: Date.now().toString(),
+      const newMessage = {
         text: response,
         isUser: false,
         timestamp: new Date(),
       };
-      
-      setMessages((prev) => [...prev, newMessage]);
+
+      // Save AI message to Supabase
+      const { data: savedMessage, error } = await supabase
+        .from('chat_messages')
+        .insert({
+          message: response,
+          is_user: false,
+          timestamp: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error saving AI message:', error);
+        return;
+      }
+
+      setMessages(prev => [...prev, { ...newMessage, id: savedMessage.id }]);
       
       if (suggestedActivity) {
         const activity = activities.find(a => a.id === suggestedActivity);
         if (activity) {
-          setTimeout(() => {
-            const activityMessage: Message = {
-              id: (Date.now() + 1).toString(),
+          setTimeout(async () => {
+            const activityMessage = {
               text: `Would you like to try our "${activity.title}" activity? Just click on it in the activities panel.`,
               isUser: false,
               timestamp: new Date(),
             };
-            setMessages((prev) => [...prev, activityMessage]);
+
+            const { data: savedActivityMessage, error: activityError } = await supabase
+              .from('chat_messages')
+              .insert({
+                message: activityMessage.text,
+                is_user: false,
+                timestamp: new Date().toISOString(),
+              })
+              .select()
+              .single();
+
+            if (!activityError) {
+              setMessages(prev => [...prev, { ...activityMessage, id: savedActivityMessage.id }]);
+            }
           }, 1000);
         }
       }
@@ -109,24 +153,39 @@ const ChatInterface: React.FC = () => {
       setIsTyping(false);
     }
   };
-  
-  const handleSendMessage = (e?: React.FormEvent) => {
+
+  const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     
     if (input.trim() === "") return;
-    
-    const newMessage: Message = {
-      id: Date.now().toString(),
+
+    const userMessage = {
       text: input,
       isUser: true,
       timestamp: new Date(),
     };
-    
-    setMessages((prev) => [...prev, newMessage]);
+
+    // Save user message to Supabase
+    const { data: savedMessage, error } = await supabase
+      .from('chat_messages')
+      .insert({
+        message: input,
+        is_user: true,
+        timestamp: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error saving user message:', error);
+      return;
+    }
+
+    setMessages(prev => [...prev, { ...userMessage, id: savedMessage.id }]);
     simulateResponse(input);
     setInput("");
   };
-  
+
   const handleQuickReply = (option: string) => {
     const newMessage: Message = {
       id: Date.now().toString(),
@@ -138,24 +197,28 @@ const ChatInterface: React.FC = () => {
     setMessages((prev) => [...prev, newMessage]);
     simulateResponse(option);
   };
-  
+
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-  
-  useEffect(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = 0;
-    }
-  }, []);
-  
-  const clearChat = () => {
+
+  const clearChat = async () => {
     if (confirm("Are you sure you want to clear your chat history?")) {
+      // Delete all chat messages from Supabase
+      const { error } = await supabase
+        .from('chat_messages')
+        .delete()
+        .neq('id', '0');
+
+      if (error) {
+        console.error('Error clearing chat history:', error);
+        return;
+      }
+
       setMessages(initialMessages);
-      localStorage.removeItem("chat-messages");
     }
   };
-  
+
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] bg-card rounded-xl shadow-md overflow-hidden border">
       <div className="p-4 bg-muted/30 backdrop-blur-sm border-b flex justify-between items-center">
@@ -211,28 +274,12 @@ const ChatInterface: React.FC = () => {
           >
             <Smile className="h-5 w-5" />
           </Button>
-          <Button 
-            type="button" 
-            variant="ghost" 
-            size="icon" 
-            className="rounded-full text-muted-foreground hover:text-foreground"
-          >
-            <Image className="h-5 w-5" />
-          </Button>
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type your message..."
             className="floating-input"
           />
-          <Button 
-            type="button" 
-            variant="ghost" 
-            size="icon" 
-            className="rounded-full text-muted-foreground hover:text-foreground"
-          >
-            <Mic className="h-5 w-5" />
-          </Button>
           <Button 
             type="submit" 
             size="icon" 
