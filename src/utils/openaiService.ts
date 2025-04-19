@@ -1,17 +1,21 @@
+
 import { toast } from "@/hooks/use-toast";
 
-const OPENAI_API_KEY = "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";
+const OPENROUTER_API_KEY = "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";
+const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 
 export const generateAIResponse = async (message: string): Promise<string> => {
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
+        'HTTP-Referer': window.location.origin,
+        'X-Title': 'Serenity Flow Mental Health Companion'
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'meta-llama/llama-3.1-8b-instruct:free',
         messages: [
           {
             role: 'system',
@@ -34,7 +38,9 @@ export const generateAIResponse = async (message: string): Promise<string> => {
             - Keep responses concise but helpful (under 120 words)
             - Tailor your tone to match the user's emotional state
             - Listen actively by reflecting back what you hear from the user
-            - Share specific techniques rather than general advice`
+            - Share specific techniques rather than general advice
+            - Only respond to mental health-related queries. For any non-mental health questions, politely decline and say "I'm sorry, but I'm only able to assist with mental health-related questions. Is there something about your mental well-being you'd like to discuss?"
+            - If the user asks about suicide, self-harm, or expresses wanting to die, immediately provide helpline information and encourage professional support.`
           },
           { role: 'user', content: message }
         ],
@@ -50,7 +56,7 @@ export const generateAIResponse = async (message: string): Promise<string> => {
     const data = await response.json();
     return data.choices[0].message.content;
   } catch (error) {
-    console.error('Error calling OpenAI API:', error);
+    console.error('Error calling OpenRouter API:', error);
     toast({
       title: "AI Response Error",
       description: "Could not generate a response. Using fallback response instead.",
@@ -62,6 +68,14 @@ export const generateAIResponse = async (message: string): Promise<string> => {
 
 const generateFallbackResponse = (message: string): string => {
   const lowerMessage = message.toLowerCase();
+  
+  // Check for non-mental health content
+  const mentalHealthKeywords = ['stress', 'anxiety', 'depression', 'mental health', 'well-being', 'emotion', 'feel', 'sad', 'happy', 'therapy', 'counseling', 'mood', 'panic', 'self-care', 'sleep', 'motivation', 'grief', 'loneliness', 'anger', 'fear'];
+  const containsMentalHealthContent = mentalHealthKeywords.some(keyword => lowerMessage.includes(keyword));
+  
+  if (!containsMentalHealthContent) {
+    return "I'm sorry, but I'm only able to assist with mental health-related questions. Is there something about your mental well-being you'd like to discuss?";
+  }
   
   // Check for crisis keywords first
   if (lowerMessage.includes("suicide") || 

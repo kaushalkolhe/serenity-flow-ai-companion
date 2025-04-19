@@ -62,29 +62,40 @@ export const useChatState = () => {
 
   useEffect(() => {
     const fetchChatHistory = async () => {
-      const { data, error } = await supabase
-        .from('chat_messages')
-        .select('*')
-        .order('timestamp', { ascending: true });
+      try {
+        const { data, error } = await supabase
+          .from('chat_messages')
+          .select('*')
+          .order('timestamp', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching chat history:', error);
+        if (error) {
+          console.error('Error fetching chat history:', error);
+          toast({
+            title: "Error loading chat history",
+            description: "Please try refreshing the page",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        if (data && data.length > 0) {
+          // Only show welcome message if no previous messages
+          const formattedMessages = data.map(msg => ({
+            id: msg.id,
+            text: msg.message,
+            isUser: msg.is_user,
+            timestamp: msg.timestamp,
+          }));
+          
+          setMessages(formattedMessages.length > 0 ? formattedMessages : initialMessages);
+        }
+      } catch (error) {
+        console.error('Error in fetchChatHistory:', error);
         toast({
           title: "Error loading chat history",
           description: "Please try refreshing the page",
           variant: "destructive",
         });
-        return;
-      }
-
-      if (data && data.length > 0) {
-        const formattedMessages = data.map(msg => ({
-          id: msg.id,
-          text: msg.message,
-          isUser: msg.is_user,
-          timestamp: msg.timestamp,
-        }));
-        setMessages([...initialMessages, ...formattedMessages]);
       }
     };
 
@@ -151,52 +162,70 @@ export const useChatState = () => {
       timestamp: new Date(),
     };
 
-    const { data: savedMessage, error } = await supabase
-      .from('chat_messages')
-      .insert({
-        message: input,
-        is_user: true,
-        timestamp: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error saving user message:', error);
-      toast({
-        title: "Error sending message",
-        description: "Please try again",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setMessages(prev => [...prev, { ...userMessage, id: savedMessage.id }]);
-    simulateResponse(input);
-  };
-
-  const clearChat = async () => {
-    if (confirm("Are you sure you want to clear your chat history?")) {
-      const { error } = await supabase
+    try {
+      const { data: savedMessage, error } = await supabase
         .from('chat_messages')
-        .delete()
-        .neq('id', '0');
+        .insert({
+          message: input,
+          is_user: true,
+          timestamp: new Date().toISOString(),
+        })
+        .select()
+        .single();
 
       if (error) {
-        console.error('Error clearing chat history:', error);
+        console.error('Error saving user message:', error);
         toast({
-          title: "Error clearing chat",
+          title: "Error sending message",
           description: "Please try again",
           variant: "destructive",
         });
         return;
       }
 
-      setMessages(initialMessages);
+      setMessages(prev => [...prev, { ...userMessage, id: savedMessage.id }]);
+      simulateResponse(input);
+    } catch (error) {
+      console.error('Error in handleSendMessage:', error);
       toast({
-        title: "Chat cleared",
-        description: "Your chat history has been cleared",
+        title: "Error sending message",
+        description: "Please try again",
+        variant: "destructive",
       });
+    }
+  };
+
+  const clearChat = async () => {
+    if (confirm("Are you sure you want to clear your chat history?")) {
+      try {
+        const { error } = await supabase
+          .from('chat_messages')
+          .delete()
+          .neq('id', '0');
+
+        if (error) {
+          console.error('Error clearing chat history:', error);
+          toast({
+            title: "Error clearing chat",
+            description: "Please try again",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        setMessages(initialMessages);
+        toast({
+          title: "Chat cleared",
+          description: "Your chat history has been cleared",
+        });
+      } catch (error) {
+        console.error('Error in clearChat:', error);
+        toast({
+          title: "Error clearing chat",
+          description: "Please try again",
+          variant: "destructive",
+        });
+      }
     }
   };
 

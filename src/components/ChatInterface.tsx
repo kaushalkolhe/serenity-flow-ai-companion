@@ -9,7 +9,8 @@ const quickReplyOptions = [
   "I'm feeling sad",
   "Help me with stress management",
   "I need help sleeping",
-  "What activities do you recommend?",
+  "What activities do you recommend for mindfulness?",
+  "How can I improve my mental well-being?",
 ];
 
 const ChatInterface: React.FC = () => {
