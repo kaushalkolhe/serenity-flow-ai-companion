@@ -1,4 +1,3 @@
-
 import { toast } from "@/hooks/use-toast";
 
 const OPENAI_API_KEY = "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";
@@ -25,13 +24,17 @@ export const generateAIResponse = async (message: string): Promise<string> => {
             - Suggest specific wellness activities like meditation, deep breathing, or journaling when relevant
             - Use a warm, conversational tone that feels like talking to a supportive friend
             - Never claim to provide medical advice, diagnosis, or treatment
-            - If someone appears to be in crisis, advise them to contact a crisis helpline, local emergency services, or to speak with a qualified mental health professional
-            - Recognize when to suggest professional help - severe symptoms, safety concerns, persistent issues
+            - If someone appears to be in crisis, ALWAYS provide the following Indian helpline numbers:
+              * Tele-MANAS: 14416 or 1800-891-4416 (24/7, multiple languages)
+              * KIRAN: 1800-599-0019 (24/7, national helpline)
+              * Mpower: 1800-120-820050 (24/7, free counseling)
+              * iCall (TISS): 9152987821 (Monday-Saturday, 8 AM-10 PM)
+              * Samaritans Mumbai: +91 84229 84528/29/30 (3 PM-9 PM, daily)
+            - For severe symptoms, safety concerns, or persistent issues, always suggest professional help
             - Keep responses concise but helpful (under 120 words)
-            - Tailor your tone to match the user's emotional state - calm and soothing for anxiety, encouraging for depression
+            - Tailor your tone to match the user's emotional state
             - Listen actively by reflecting back what you hear from the user
-            - Share specific techniques rather than general advice ('Try box breathing: 4 counts in, 4 hold, 4 out' rather than 'Try breathing exercises')
-            - When suggesting activities, reference the app's built-in exercises like deep breathing, guided meditation, gratitude journaling, and mood tracking`
+            - Share specific techniques rather than general advice`
           },
           { role: 'user', content: message }
         ],
@@ -53,15 +56,30 @@ export const generateAIResponse = async (message: string): Promise<string> => {
       description: "Could not generate a response. Using fallback response instead.",
       variant: "destructive",
     });
-    // Return a fallback response if the API call fails
     return generateFallbackResponse(message);
   }
 };
 
-// Fallback responses in case the API call fails
 const generateFallbackResponse = (message: string): string => {
   const lowerMessage = message.toLowerCase();
   
+  // Check for crisis keywords first
+  if (lowerMessage.includes("suicide") || 
+      lowerMessage.includes("kill myself") || 
+      lowerMessage.includes("want to die") ||
+      lowerMessage.includes("end my life") ||
+      lowerMessage.includes("self harm")) {
+    return `I'm deeply concerned about what you're sharing, and I want you to know that you're not alone. Your life matters. Please reach out to these 24/7 professional helplines immediately:
+
+    • Tele-MANAS: 14416 or 1800-891-4416 (24/7, multiple languages)
+    • KIRAN: 1800-599-0019 (24/7, national helpline)
+    • Mpower: 1800-120-820050 (24/7, free counseling)
+    • iCall (TISS): 9152987821 (Monday-Saturday, 8 AM-10 PM)
+    • Samaritans Mumbai: +91 84229 84528/29/30 (3 PM-9 PM, daily)
+
+    If you're in immediate danger, please call emergency services right away. Would you like to talk about what's troubling you? I'm here to listen without judgment.`;
+  }
+
   if (lowerMessage.includes("anxious") || lowerMessage.includes("anxiety")) {
     return "I understand anxiety can be challenging. Would you like to try a deep breathing exercise? It can help calm your nervous system by activating your parasympathetic response. Just type 'yes' to begin, or we can explore other coping strategies.";
   } else if (lowerMessage.includes("sad") || lowerMessage.includes("depressed")) {
