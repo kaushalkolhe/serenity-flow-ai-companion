@@ -1,62 +1,17 @@
-
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-
-const OPENROUTER_API_KEY = "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";
-const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 
 export const generateAIResponse = async (message: string): Promise<string> => {
   try {
-    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': window.location.origin,
-        'X-Title': 'Serenity Flow Mental Health Companion'
-      },
-      body: JSON.stringify({
-        model: 'meta-llama/llama-3.1-8b-instruct:free',
-        messages: [
-          {
-            role: 'system',
-            content: `You are Serenity, an AI mental health companion designed to provide empathetic support, guidance, and resources.
-            Your primary goal is to help users manage stress, anxiety, depression, and other mental health challenges.
-            
-            Core Guidelines:
-            - Be exceptionally warm, empathetic, and supportive in all interactions
-            - Provide evidence-based coping strategies and techniques from CBT, DBT, mindfulness and positive psychology
-            - Suggest specific wellness activities like meditation, deep breathing, or journaling when relevant
-            - Use a warm, conversational tone that feels like talking to a supportive friend
-            - Never claim to provide medical advice, diagnosis, or treatment
-            - If someone appears to be in crisis, ALWAYS provide the following Indian helpline numbers:
-              * Tele-MANAS: 14416 or 1800-891-4416 (24/7, multiple languages)
-              * KIRAN: 1800-599-0019 (24/7, national helpline)
-              * Mpower: 1800-120-820050 (24/7, free counseling)
-              * iCall (TISS): 9152987821 (Monday-Saturday, 8 AM-10 PM)
-              * Samaritans Mumbai: +91 84229 84528/29/30 (3 PM-9 PM, daily)
-            - For severe symptoms, safety concerns, or persistent issues, always suggest professional help
-            - Keep responses concise but helpful (under 120 words)
-            - Tailor your tone to match the user's emotional state
-            - Listen actively by reflecting back what you hear from the user
-            - Share specific techniques rather than general advice
-            - Only respond to mental health-related queries. For any non-mental health questions, politely decline and say "I'm sorry, but I'm only able to assist with mental health-related questions. Is there something about your mental well-being you'd like to discuss?"
-            - If the user asks about suicide, self-harm, or expresses wanting to die, immediately provide helpline information and encourage professional support.`
-          },
-          { role: 'user', content: message }
-        ],
-        temperature: 0.7,
-        max_tokens: 300,
-      }),
+    const { data, error } = await supabase.functions.invoke('chat-completion', {
+      body: { message }
     });
 
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
+    if (error) throw error;
 
-    const data = await response.json();
-    return data.choices[0].message.content;
+    return data.response;
   } catch (error) {
-    console.error('Error calling OpenRouter API:', error);
+    console.error('Error calling Edge Function:', error);
     toast({
       title: "AI Response Error",
       description: "Could not generate a response. Using fallback response instead.",
