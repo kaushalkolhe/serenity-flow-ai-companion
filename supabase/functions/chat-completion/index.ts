@@ -2,8 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
-const OPENROUTER_API_KEY = "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";
-const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
+const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,16 +19,14 @@ serve(async (req) => {
     const { message } = await req.json()
     console.log('Received message:', message)
 
-    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+    const response = await fetch(`https://api.openai.com/v1/chat/completions`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'http://localhost:5173',
-        'X-Title': 'Serenity Flow Mental Health Companion'
       },
       body: JSON.stringify({
-        model: 'meta-llama/llama-3.1-8b-instruct:free',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -63,7 +60,7 @@ serve(async (req) => {
     })
 
     const data = await response.json()
-    console.log('OpenRouter API response:', data)
+    console.log('OpenAI API response:', data)
 
     return new Response(
       JSON.stringify({ response: data.choices[0].message.content }),
